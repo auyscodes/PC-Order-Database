@@ -67,7 +67,7 @@ def create_tables():
     curs = conn.cursor()
     curs.execute('create table if not exists customers(id serial, firstName text, lastName text, street text, city text, state text, zip int, primary key(id))')
     curs.execute('create table if not exists products(id serial, name text, price real, primary key(id))')
-    curs.execute('create table if not exists orders(id serial, customerId int, productId int, date text, primary key(id), foreign key(customerId) references customers(id) on delete cascade on update cascade, foreign key(productId) references products(id) on delete cascade on update cascade)')
+    curs.execute('create table if not exists orders(id serial, customerId int, productId int, date text, primary key(id), foreign key(customerId) references customers(id) on delete set null on update cascade, foreign key(productId) references products(id) on delete set null on update cascade)')
     conn.commit()
 
 
@@ -113,10 +113,13 @@ def get_customers():
     # return customers
 
 def get_customer(id):
+    print('inside get customer')
     curs = conn.cursor()
     curs.execute('select * from customers where id=(%s)', (id,))
     customer_tuple = curs.fetchone()
-    customer = dict()
+    customer = {'id' : 'None', 'firstName' : 'None', 'lastName' : 'None', 'street' : 'None', 'city' : 'None', 'state' : 'None', 'zip' : 'None'}
+    if customer_tuple == None:
+        return customer
     customer['id'] = customer_tuple[0]
     customer['firstName'] = customer_tuple[1]
     customer['lastName'] = customer_tuple[2]
@@ -134,13 +137,17 @@ def get_customer(id):
 
 def upsert_customer(customer):
     curs = conn.cursor()
-    print(type(customer))
-    for key,value in customer.items():
-        print("key = (%s) and value = (%s) ", (key,value))
-    print(customer.get('firstName'))
-    curs.execute('insert into customers(firstName, lastName, street, city, state, zip) values (%s,%s,%s,%s,%s,%s) returning id', (customer.get('firstName'), customer.get('lastName'), customer.get('street'), customer.get('city'), customer.get('state'), customer.get('zip')))
-    print("customer inserted id : ")
-    print(curs.fetchone())
+    # print("------------------------------")
+    # print("------------------------------")
+    # print(type(customer))
+    # print(customer)
+    # for key,value in customer.items():
+    #     print("key = (%s) and value = (%s) ", (key,value))
+    # print(customer.get('firstName'))
+    if 'id' in customer:
+        curs.execute('update customers set firstName=(%s), lastName=(%s), street=(%s), city=(%s), state=(%s), zip=(%s) where id=(%s)', (customer.get('firstName'), customer.get('lastName'), customer.get('street'), customer.get('city'), customer.get('state'), customer.get('zip'), customer.get('id')))
+    else:
+        curs.execute('insert into customers(firstName, lastName, street, city, state, zip) values (%s,%s,%s,%s,%s,%s) returning id', (customer.get('firstName'), customer.get('lastName'), customer.get('street'), customer.get('city'), customer.get('state'), customer.get('zip')))
     conn.commit()
     # _upsert_by_id(customers, customer)
 
@@ -164,10 +171,13 @@ def get_products():
     return products
 
 def get_product(id):
+    print('inside get product')
     curs = conn.cursor()
     curs.execute('select * from products where id=(%s)', (id,))
     product_tuple = curs.fetchone()
-    product = dict()
+    product = {'id' : 'None', 'name' : 'None', 'price': 'None'}
+    if product_tuple == None:
+        return product
     product['id'] = product_tuple[0]
     product['name'] = product_tuple[1]
     product['price'] = product_tuple[2]
@@ -179,9 +189,13 @@ def get_product(id):
 
 def upsert_product(product):
     curs = conn.cursor()
-    curs.execute('insert into products(name, price) values(%s,%s) returning id',(product.get('name'), product.get('price')))
-    print("product inserted id: ")
-    print(curs.fetchone())
+    print("--------------")
+    print(type(product))
+    print(product)
+    if 'id' in product:
+        curs.execute('update products set name=(%s), price=(%s) where id=(%s)', (product.get('name'), product.get('price'), product.get('id')))
+    else:
+        curs.execute('insert into products(name, price) values(%s,%s) returning id',(product.get('name'), product.get('price')))
     conn.commit()
     # _upsert_by_id(products, product)
 
@@ -192,6 +206,7 @@ def delete_product(id):
     #_delete_by_id(products, id)
 
 def get_orders():
+    print('inside get orders')
     curs = conn.cursor()
     curs.execute('select * from orders')
     orders = list()
@@ -265,6 +280,11 @@ def sales_report():
     products = get_products()
     for product in products:
         orders = [o for o in get_orders() if o['productId'] == product['id']]
+        if len(orders) == 0:
+            product['last_order_date'] = 'None'
+            product['total_sales'] = 'None'
+            product['gross_revenue'] = 'None'
+            continue
         orders = sorted(orders, key=lambda k: k['date'])
         product['last_order_date'] = orders[-1]['date']
         product['total_sales'] = len(orders)
