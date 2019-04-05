@@ -50,7 +50,6 @@ def get_customers():
         customer['state'] = customer_tuple[5]
         customer['zip'] = customer_tuple[6]
         customers.append(customer);
-    # customers = curs.fetchall()
     return customers
 
     # return customers
@@ -97,7 +96,6 @@ def get_products():
         product['name'] = product_tuple[1]
         product['price'] = product_tuple[2]
         products.append(product)
-    # products = curs.fetchall()
     return products
 
 def get_product(id):
@@ -189,9 +187,8 @@ def customer_report(id):
 def sales_report():
     curs = conn.cursor()
     curs.execute('select name, avg(price)*count(products.id),  count(orders.productId), max(date) from products left join orders on orders.productId = products.id group by products.id')
-    report_tuples = curs.fetchall()
     reports = list()
-    for report_tuple in report_tuples:
+    for report_tuple in curs:
         report = dict()
         # report = {'name' : 'None', 'gross_revenue' : 'None', 'total_sales' : 'None', 'last_order_date' : 'None'}
         report['name'] = report_tuple[0]
