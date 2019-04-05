@@ -186,7 +186,7 @@ def customer_report(id):
 # information
 def sales_report():
     curs = conn.cursor()
-    curs.execute('select name, avg(price)*count(products.id),  count(orders.productId), max(date) from products left join orders on orders.productId = products.id group by products.id')
+    curs.execute('select name, avg(price)*count(orders.productId),  count(orders.productId), max(date) from products left join orders on orders.productId = products.id group by products.id')
     reports = list()
     for report_tuple in curs:
         report = dict()
