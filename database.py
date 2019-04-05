@@ -12,7 +12,7 @@ conn = None
 
 def create_tables():
     curs = conn.cursor()
-    curs.execute('create table if not exists customers(id serial, firstName text, lastName text, street text, city text, state text, zip int, primary key(id))')
+    curs.execute('create table if not exists customers(id serial, firstName text, lastName text, street text, city text, state text, zip text, primary key(id))')
     curs.execute('create table if not exists products(id serial, name text, price real, primary key(id))')
     curs.execute('create table if not exists orders(id serial, customerId int, productId int, date text, primary key(id), foreign key(customerId) references customers(id) on delete set null on update cascade, foreign key(productId) references products(id) on delete set null on update cascade)')
     conn.commit()
@@ -187,18 +187,29 @@ def customer_report(id):
 # accessing the database more than once, and retrieving unnecessary
 # information
 def sales_report():
-    #if number of orders is less than 1 than return empty dict
-    #else return below
-    products = get_products()
-    for product in products:
-        orders = [o for o in get_orders() if o['productId'] == product['id']]
-        if len(orders) == 0:
-            product['last_order_date'] = 'None'
-            product['total_sales'] = 'None'
-            product['gross_revenue'] = 'None'
-            continue
-        orders = sorted(orders, key=lambda k: k['date'])
-        product['last_order_date'] = orders[-1]['date']
-        product['total_sales'] = len(orders)
-        product['gross_revenue'] = product['price'] * product['total_sales']
-    return products
+    curs = conn.cursor()
+    curs.execute('select name, avg(price)*count(products.id),  count(orders.productId), max(date) from products left join orders on orders.productId = products.id group by products.id')
+    report_tuples = curs.fetchall()
+    reports = list()
+    for report_tuple in report_tuples:
+        report = dict()
+        # report = {'name' : 'None', 'gross_revenue' : 'None', 'total_sales' : 'None', 'last_order_date' : 'None'}
+        report['name'] = report_tuple[0]
+        report['gross_revenue'] = report_tuple[1]
+        report['total_sales'] = report_tuple[2]
+        report['last_order_date'] = report_tuple[3]
+        reports.append(report)
+    return reports
+    # products = get_products()
+    # for product in products:
+    #     orders = [o for o in get_orders() if o['productId'] == product['id']]
+    #     if len(orders) == 0:
+    #         product['last_order_date'] = 'None'
+    #         product['total_sales'] = 'None'
+    #         product['gross_revenue'] = 'None'
+    #         continue
+    #     orders = sorted(orders, key=lambda k: k['date'])
+    #     product['last_order_date'] = orders[-1]['date']
+    #     product['total_sales'] = len(orders)
+    #     product['gross_revenue'] = product['price'] * product['total_sales']
+    # return products
