@@ -66,7 +66,6 @@ def product_new():
     else:
         n = request.form.copy()
         n['price'] = float(n['price'])
-        print(n)
         upsert_product(n)
         return redirect("/product/", code=302)
 
@@ -98,11 +97,6 @@ def product_delete(id):
 @app.route('/order/')
 def order_index():
     orders = get_orders()
-    print("----------------------")
-    print("----------------------")
-    print(type(orders))
-    print(orders)
-    print("----------------------")
     return render_template('orders/index.html', orders=orders)
 
 @app.route('/order/new', methods=['GET', 'POST'])
